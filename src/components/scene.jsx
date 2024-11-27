@@ -1,7 +1,9 @@
 "use client";
-import React, { useRef } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { MeshTransmissionMaterial, Image } from "@react-three/drei";
+import React, { useEffect, useRef } from "react";
+import { TextureLoader } from "three";
+
+import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
+import { MeshTransmissionMaterial, useMask, Mask } from "@react-three/drei";
 import {
   EffectComposer,
   HueSaturation,
@@ -9,6 +11,7 @@ import {
 } from "@react-three/postprocessing";
 import { useControls } from "leva";
 import { KernelSize } from "postprocessing";
+import * as THREE from "three";
 
 export default function Scene() {
   const {
@@ -65,27 +68,38 @@ export default function Scene() {
         environment={environment}
         noiseIntensity={noiseIntensity}
         noiseSpeed={noiseSpeed}
+        hue={hue}
+        saturation={saturation}
+        bloomIntensity={bloomIntensity}
+        bloomKernelSize={bloomKernelSize}
+        bloomLuminanceThreshold={bloomLuminanceThreshold}
+        bloomLuminanceSmoothing={bloomLuminanceSmoothing}
+        bloomMipmapBlur={bloomMipmapBlur}
+        bloomResolutionX={bloomResolutionX}
+        bloomResolutionY={bloomResolutionY}
       />
       <ambientLight intensity={1 * Math.PI} />
-      <EffectComposer disableNormalPass multisampling={4}>
-        <HueSaturation hue={hue} saturation={saturation} />
-        <Bloom
-          intensity={0.2} // The bloom intensity.
-          kernelSize={bloomKernelSize} // blur kernel size
-          luminanceThreshold={bloomLuminanceThreshold} // luminance threshold
-          luminanceSmoothing={bloomLuminanceSmoothing} // smoothness of the luminance threshold
-          mipmapBlur={bloomMipmapBlur} // Enables or disables mipmap blur
-          resolutionX={bloomResolutionX} // The horizontal resolution
-          resolutionY={bloomResolutionY} // The vertical resolution
-        />
-      </EffectComposer>
     </Canvas>
   );
 }
 
-function Bubble({ environment, config, noiseIntensity, noiseSpeed }) {
+function Bubble({
+  config,
+  noiseIntensity,
+  noiseSpeed,
+  hue,
+  saturation,
+  bloomIntensity,
+  bloomKernelSize,
+  bloomLuminanceThreshold,
+  bloomLuminanceSmoothing,
+  bloomMipmapBlur,
+  bloomResolutionX,
+  bloomResolutionY,
+}) {
   const { viewport } = useThree();
-  const mesh = useRef(null);
+  const mesh1 = useRef(null);
+  const mesh2 = useRef(null);
 
   const originalPositions = useRef(null);
   const time = useRef(0);
@@ -93,19 +107,20 @@ function Bubble({ environment, config, noiseIntensity, noiseSpeed }) {
   useFrame((state, delta) => {
     time.current += delta * noiseSpeed;
 
-    if (mesh.current && mesh.current.geometry) {
-      const positions = mesh.current.geometry.attributes.position.array;
+    if (mesh1.current && mesh1.current.geometry) {
+      const positions1 = mesh1.current.geometry.attributes.position.array;
+      const positions2 = mesh2.current.geometry.attributes.position.array;
 
       // Store original positions if not already stored
       if (!originalPositions.current) {
-        originalPositions.current = new Float32Array(positions.length);
-        for (let i = 0; i < positions.length; i++) {
-          originalPositions.current[i] = positions[i];
+        originalPositions.current = new Float32Array(positions1.length);
+        for (let i = 0; i < positions1.length; i++) {
+          originalPositions.current[i] = positions1[i];
         }
       }
 
       // Update each vertex position with noise
-      for (let i = 0; i < positions.length; i += 3) {
+      for (let i = 0; i < positions1.length; i += 3) {
         const x = originalPositions.current[i];
         const y = originalPositions.current[i + 1];
         const z = originalPositions.current[i + 2];
@@ -119,24 +134,42 @@ function Bubble({ environment, config, noiseIntensity, noiseSpeed }) {
 
         // Apply noise in the direction of the vertex normal
         const length = Math.sqrt(x * x + y * y + z * z);
-        positions[i] = x + (x / length) * noise;
-        positions[i + 1] = y + (y / length) * noise;
-        positions[i + 2] = z + (z / length) * noise;
+        positions1[i] = x + (x / length) * noise;
+        positions1[i + 1] = y + (y / length) * noise;
+        positions1[i + 2] = z + (z / length) * noise;
+
+        positions2[i] = x + (x / length) * noise;
+        positions2[i + 1] = y + (y / length) * noise;
+        positions2[i + 2] = z + (z / length) * noise;
       }
 
-      mesh.current.geometry.attributes.position.needsUpdate = true;
-      mesh.current.rotation.y += delta * 0.2;
-      mesh.current.rotation.z += delta * 0.1;
+      mesh1.current.geometry.attributes.position.needsUpdate = true;
+      mesh1.current.rotation.y += delta * 0.2;
+      mesh1.current.rotation.z += delta * 0.1;
+
+      mesh2.current.geometry.attributes.position.needsUpdate = true;
+      mesh2.current.rotation.y += delta * 0.2;
+      mesh2.current.rotation.z += delta * 0.1;
     }
   });
 
+  const stencil = useMask(1, false);
+  const texture = useLoader(TextureLoader, "/lola.jpg");
+
   return (
     <group scale={viewport.width / 3.75}>
-      <mesh ref={mesh}>
+      <mesh ref={mesh1}>
         <sphereGeometry args={[0.4, 64, 64]} />
         <MeshTransmissionMaterial {...config} />
+        <HueSaturation hue={hue} saturation={saturation} />
       </mesh>
-      <Image position={[0, 0, 0]} url="/lola.jpg" alt="Test" />
+      <Mask ref={mesh2} id={1}>
+        <sphereGeometry args={[0.4, 64, 64]} />
+      </Mask>
+      <mesh>
+        <planeGeometry args={[1.25, 1.25]} />
+        <meshStandardMaterial map={texture} {...stencil} />
+      </mesh>
     </group>
   );
 }
