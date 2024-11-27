@@ -1,13 +1,7 @@
 "use client";
-import React, { useEffect, useRef } from "react";
-import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
-import {
-  MeshTransmissionMaterial,
-  Image,
-  Text,
-  useMask,
-  Mask,
-} from "@react-three/drei";
+import React, { useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { MeshTransmissionMaterial, Image } from "@react-three/drei";
 import {
   EffectComposer,
   HueSaturation,
@@ -15,7 +9,6 @@ import {
 } from "@react-three/postprocessing";
 import { useControls } from "leva";
 import { KernelSize } from "postprocessing";
-import * as THREE from "three";
 
 export default function Scene() {
   const {
@@ -137,30 +130,13 @@ function Bubble({ environment, config, noiseIntensity, noiseSpeed }) {
     }
   });
 
-  const stencil = useMask(1, false);
-
   return (
     <group scale={viewport.width / 3.75}>
-      {/* <Text
-        font={"/fonts/PPNeueMontreal-Bold.otf"}
-        position={[0, 0, -1]}
-        fontSize={0.5}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-      >
-        Correctiv
-      </Text> */}
       <mesh ref={mesh}>
         <sphereGeometry args={[0.4, 64, 64]} />
         <MeshTransmissionMaterial {...config} />
       </mesh>
-      <Image
-        geometry={new THREE.CircleGeometry(1, 1)}
-        position={[0, 0, 0]}
-        url="/medias/lindner.jpg"
-        alt="Test"
-      />
+      <Image position={[0, 0, 0]} url="/lola.jpg" alt="Test" />
     </group>
   );
 }
