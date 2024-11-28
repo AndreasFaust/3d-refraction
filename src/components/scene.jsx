@@ -1,102 +1,39 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { TextureLoader } from "three";
 
 import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
 import { MeshTransmissionMaterial, useMask, Mask } from "@react-three/drei";
-import {
-  EffectComposer,
-  HueSaturation,
-  Bloom,
-} from "@react-three/postprocessing";
 import { useControls } from "leva";
-import { KernelSize } from "postprocessing";
-import * as THREE from "three";
 
 export default function Scene() {
-  const {
-    saturation,
-    environment,
-    hue,
-    noiseIntensity,
-    noiseSpeed,
-    bloomIntensity,
-    bloomKernelSize,
-    bloomLuminanceThreshold,
-    bloomLuminanceSmoothing,
-    bloomMipmapBlur,
-    bloomResolutionX,
-    bloomResolutionY,
-    ...config
-  } = useControls({
+  const { noiseIntensity, noiseSpeed, ...config } = useControls({
     thickness: { value: 3, min: 0, max: 3, step: 0.05 },
     roughness: { value: 0, min: 0, max: 1, step: 0.1 },
-    ior: { value: 1.02, min: 0.8, max: 1.2, step: 0.01 },
-    chromaticAberration: { value: 0.01, min: 0, max: 0.5, step: 0.01 },
-    distortion: { value: 1, min: 0, max: 1, step: 0.05 },
-    temporalDistortion: { value: 0.09, min: 0, max: 0.3, step: 0.01 },
-    distortionScale: { value: 0.2, min: 0, max: 1, step: 0.05 },
+    ior: { value: 0.96, min: 0.8, max: 1.2, step: 0.01 },
+    chromaticAberration: { value: 0.03, min: 0, max: 0.5, step: 0.01 },
+    distortion: { value: 0.5, min: 0, max: 1, step: 0.05 },
+    temporalDistortion: { value: 0.35, min: 0, max: 0.3, step: 0.01 },
+    distortionScale: { value: 0.45, min: 0, max: 1, step: 0.05 },
     anisotropicBlur: { value: 0.8, min: 0, max: 10, step: 0.05 },
-    saturation: { value: 0.48, min: 0.2, max: 0.8 },
-    hue: { value: 0, min: 0, max: 2, step: 0.05 },
     color: "#fdf1ff",
     noiseIntensity: { value: 0.08, min: 0, max: 0.5, step: 0.01 },
     noiseSpeed: { value: 0.36, min: 0, max: 0.5, step: 0.01 },
-    bloomIntensity: { value: 0, min: 0, max: 5, step: 0.1 }, // Bloom intensity
-    bloomKernelSize: {
-      value: KernelSize.MEDIUM,
-      options: [
-        KernelSize.VERY_SMALL,
-        KernelSize.SMALL,
-        KernelSize.MEDIUM,
-        KernelSize.LARGE,
-        KernelSize.VERY_LARGE,
-        KernelSize.HUGE,
-      ],
-    }, // Blur kernel size
-    bloomLuminanceThreshold: { value: 0.34, min: 0, max: 1, step: 0.01 }, // Luminance threshold
-    bloomLuminanceSmoothing: { value: 0, min: 0, max: 1, step: 0.01 }, // Smoothness of the luminance threshold
-    bloomMipmapBlur: { value: true }, // Enables or disables mipmap blur
-    bloomResolutionX: { value: 0, min: 0, max: 2048, step: 1 }, // Horizontal resolution
-    bloomResolutionY: { value: 0, min: 0, max: 2048, step: 1 }, // Vertical resolution
   });
 
   return (
     <Canvas style={{ background: "white" }}>
       <Bubble
         config={config}
-        environment={environment}
         noiseIntensity={noiseIntensity}
         noiseSpeed={noiseSpeed}
-        hue={hue}
-        saturation={saturation}
-        bloomIntensity={bloomIntensity}
-        bloomKernelSize={bloomKernelSize}
-        bloomLuminanceThreshold={bloomLuminanceThreshold}
-        bloomLuminanceSmoothing={bloomLuminanceSmoothing}
-        bloomMipmapBlur={bloomMipmapBlur}
-        bloomResolutionX={bloomResolutionX}
-        bloomResolutionY={bloomResolutionY}
       />
       <ambientLight intensity={1 * Math.PI} />
     </Canvas>
   );
 }
 
-function Bubble({
-  config,
-  noiseIntensity,
-  noiseSpeed,
-  hue,
-  saturation,
-  bloomIntensity,
-  bloomKernelSize,
-  bloomLuminanceThreshold,
-  bloomLuminanceSmoothing,
-  bloomMipmapBlur,
-  bloomResolutionX,
-  bloomResolutionY,
-}) {
+function Bubble({ config, noiseIntensity, noiseSpeed, hue, saturation }) {
   const { viewport } = useThree();
   const mesh1 = useRef(null);
   const mesh2 = useRef(null);
@@ -161,7 +98,6 @@ function Bubble({
       <mesh ref={mesh1}>
         <sphereGeometry args={[0.4, 64, 64]} />
         <MeshTransmissionMaterial {...config} />
-        <HueSaturation hue={hue} saturation={saturation} />
       </mesh>
       <Mask ref={mesh2} id={1}>
         <sphereGeometry args={[0.4, 64, 64]} />
